@@ -9,7 +9,7 @@
   - configurato con accesso diretto a tutte le porte dei servizi
 - database sqlite
 
-## Comandi per attivare il progetto (da lanciare dentro la route)
+## Comandi per attivare il progetto
 - cp .env.example .env
 - composer install
 - npm install
