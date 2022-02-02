@@ -7,13 +7,13 @@
   - php ver. 8.0
   - apache ver. 2.4
   - configurato con accesso diretto a tutte le porte dei servizi
-- database sqlite
+- database sqlite - gia presente e configurato nel fiel .env.example
 
 ## Comandi per attivare il progetto
 - cp .env.example .env
 - composer install
 - npm install
-- php artisan migrate
+- php artisan migrate (opzionale)
 - php artisan jwt:secret
 
 ## Route create dentro al middleware 
