@@ -9,6 +9,12 @@
   - configurato con accesso diretto a tutte le porte dei servizi
 - database sqlite
 
+## Comandi per attivare il progetto (da lanciare dentro la route)
+- cp .env.example .env
+- composer install
+- npm install
+- php artisan migrate
+- php artisan jwt:secret
 
 ## Route create dentro al middleware 
 ### (escluse dal middleware dentro il controller le route register e login)
