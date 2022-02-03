@@ -12,19 +12,35 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 
-/**
- * @todo creare dei sotto metodi per il login e la creazione utente
- */
+
 class AuthTest extends TestCase
 {
+    /**
+     * uri api
+     */
+    const
+        API_REGISTER = '/api/auth/register',
+        API_LOGIN = '/api/auth/login',
+        API_ME = '/api/auth/me',
+        API_REFRESH = '/api/auth/refresh',
+        API_LOGOUT = '/api/auth/logout';
+
+    /**
+     * costanti creazione utente
+     */
+    const
+        CREATE_NAME = 'name',
+        CREATE_EMAIL = 'email',
+        CREATE_PASSWORD = 'password',
+        CREATE_PASSWORD_CONFIRMATION = 'password_confirmation';
 
     /**
      * costanti utente
      */
     const
-        NAME = 'panco2',
-        EMAIL = 'panco2@panco.net',
-        PASSWORD = '123456f';
+        USER_NAME = 'panco2',
+        USER_EMAIL = 'panco2@panco.net',
+        USER_PASSWORD = '123456f';
 
     /**
      * testo la creazione degli utenti
@@ -33,12 +49,8 @@ class AuthTest extends TestCase
      */
     public function testRegister()
     {
-        $response = $this->json('POST', '/api/auth/register', [
-            'name'  =>  self::NAME,
-            'email'  =>  $email = rand().time().self::EMAIL,
-            'password'  =>  self::PASSWORD,
-            'password_confirmation' => self::PASSWORD,
-        ]);
+        $response = $this->_createUserByApi();
+        $email = $response->json(AuthController::REGISTER_USER_KEY)[self::CREATE_EMAIL];
 
         //Write the response in laravel.log
         Log::info('test Register ', [$response->getContent()]);
@@ -49,8 +61,7 @@ class AuthTest extends TestCase
         ]);
         $this->assertArrayHasKey(AuthController::REGISTER_USER_KEY,$response->json());
 
-        // Delete users
-        User::where('email',$email)->delete();
+        $this->_deleteUser($email);
     }
 
     /**
@@ -61,25 +72,26 @@ class AuthTest extends TestCase
     public function testRegisterSameUser(){
 
         $response = $this->json('POST', '/api/auth/register', [
-            'name'  =>  self::NAME,
-            'email'  =>  self::EMAIL,
-            'password'  =>  self::PASSWORD,
-            'password_confirmation' => self::PASSWORD,
+            'name'  =>  self::USER_NAME,
+            'email'  =>  self::USER_EMAIL,
+            'password'  =>  self::USER_PASSWORD,
+            'password_confirmation' => self::USER_PASSWORD,
         ]);
 
         //Write the response in laravel.log
         Log::info('test Register same user ', [$response->getContent()]);
 
         $response = $this->json('POST', '/api/auth/register', [
-            'name'  =>  self::NAME,
-            'email'  =>  self::EMAIL,
-            'password'  =>  self::PASSWORD,
-            'password_confirmation' => self::PASSWORD,
+            'name'  =>  self::USER_NAME,
+            'email'  =>  self::USER_EMAIL,
+            'password'  =>  self::USER_PASSWORD,
+            'password_confirmation' => self::USER_PASSWORD,
         ]);
 
         $response->assertStatus(Response::HTTP_BAD_REQUEST);
         $this->assertEquals('"{\"email\":[\"The email has already been taken.\"]}"', $response->getContent());
 
+        $this->_deleteUser(self::USER_EMAIL);
     }
 
 
@@ -90,18 +102,12 @@ class AuthTest extends TestCase
      */
     public function testLogin()
     {
-        // Creating Users
-        User::create([
-            'name' => self::NAME,
-            'email'=> $email = rand().time().self::EMAIL,
-            'password' => bcrypt(self::PASSWORD)
-        ]);
+        $response = $this->_createUserByApi();
+        $email = $response->json(AuthController::REGISTER_USER_KEY)[self::CREATE_EMAIL];
+        $password = self::USER_PASSWORD;
 
         // Simulated landing
-        $response = $this->json('POST','/api/auth/login',[
-            'email' => $email,
-            'password' => self::PASSWORD,
-        ]);
+        $response = $this->_loginByApi($email, $password);
 
         //Write the response in laravel.log
         Log::info('test Login', [$response->getContent()]);
@@ -112,8 +118,7 @@ class AuthTest extends TestCase
             'token_type' => 'bearer'
         ]);
 
-        // Delete users
-        User::where('email',$email)->delete();
+        $this->_deleteUser($email);
     }
 
     /**
@@ -123,35 +128,32 @@ class AuthTest extends TestCase
      */
     public function testMe(){
 
-        // Creating Users
-        User::create([
-            'name' => self::NAME,
-            'email'=> $email = rand().time().self::EMAIL,
-            'password' => bcrypt(self::PASSWORD)
-        ]);
+        $response = $this->_createUserByApi();
+        $email = $response->json(AuthController::REGISTER_USER_KEY)[self::CREATE_EMAIL];
+        $password = self::USER_PASSWORD;
+        $name = $response->json(AuthController::REGISTER_USER_KEY)[self::CREATE_NAME];
 
-        // Simulated login
-        $response = $this->json('POST','/api/auth/login',[
-            'email' => $email,
-            'password' => self::PASSWORD,
-        ]);
+        //Write the response in laravel.log
+        Log::info('test me', [$response->getContent()]);
+
+        // Simulated landing
+        $response = $this->_loginByApi($email, $password);
+
+        //Write the response in laravel.log
+        Log::info('test me', [$response->getContent()]);
 
         $token = $response->json('access_token');
 
-        //mi collego per recuperare i dati utente
-        $response = $this->json('GET','/api/auth/me',[
-            'Authorization' => 'Bearer ' . $token
-        ]);
+        $response = $this->_getUserData($token);
 
         $response->assertStatus(Response::HTTP_OK);
         $response->assertJson([
             'email' => $email,
-            'name' => self::NAME
+            'name' => $name
         ]);
         $this->assertArrayHasKey('id', $response->json());
 
-        // Delete users
-        User::where('email',$email)->delete();
+        $this->_deleteUser($email);
     }
 
     /**
@@ -160,28 +162,24 @@ class AuthTest extends TestCase
      * @return void
      */
     public function testRefresh(){
-        // Creating Users
-        User::create([
-            'name' => self::NAME,
-            'email'=> $email = rand().time().self::EMAIL,
-            'password' => bcrypt(self::PASSWORD)
-        ]);
+        $response = $this->_createUserByApi();
+        $email = $response->json(AuthController::REGISTER_USER_KEY)[self::CREATE_EMAIL];
+        $password = self::USER_PASSWORD;
+        $name = $response->json(AuthController::REGISTER_USER_KEY)[self::CREATE_NAME];
 
-        // Simulated login
-        $response = $this->json('POST','/api/auth/login',[
-            'email' => $email,
-            'password' => self::PASSWORD,
-        ]);
+        //Write the response in laravel.log
+        Log::info('test refrest user data', [$response->getContent()]);
+
+
+        // Simulated landing
+        $response = $this->_loginByApi($email, $password);
 
         //Write the response in laravel.log
         Log::info('test refrest old token', [$response->getContent()]);
 
         $token = $response->json('access_token');
 
-        //mi collego per recuperare i dati utente
-        $response = $this->json('POST','/api/auth/refresh',[
-            'Authorization' => 'Bearer ' . $token
-        ]);
+        $response = $this->_refreshApiToken($token);
 
         //Write the response in laravel.log
         Log::info('test refrest new token', [$response->getContent()]);
@@ -194,20 +192,16 @@ class AuthTest extends TestCase
         ]);
         $this->assertFalse($token == $newToken);
 
-        //mi collego per recuperare i dati utente
-        $response = $this->json('GET','/api/auth/me',[
-            'Authorization' => 'Bearer ' . $newToken
-        ]);
+        $response = $this->_getUserData($newToken);
 
         $response->assertStatus(Response::HTTP_OK);
         $response->assertJson([
             'email' => $email,
-            'name' => self::NAME
+            'name' => $name
         ]);
         $this->assertArrayHasKey('id', $response->json());
 
-        // Delete users
-        User::where('email',$email)->delete();
+        $this->_deleteUser($email);
     }
 
     /**
@@ -216,25 +210,16 @@ class AuthTest extends TestCase
      * @return void
      */
     public function testLogout(){
-        // Creating Users
-        User::create([
-            'name' => self::NAME,
-            'email'=> $email = rand().time().self::EMAIL,
-            'password' => bcrypt(self::PASSWORD)
-        ]);
+        $response = $this->_createUserByApi();
+        $email = $response->json(AuthController::REGISTER_USER_KEY)[self::CREATE_EMAIL];
+        $password = self::USER_PASSWORD;
 
-        // Simulated login
-        $response = $this->json('POST','/api/auth/login',[
-            'email' => $email,
-            'password' => self::PASSWORD,
-        ]);
+        // Simulated landing
+        $response = $this->_loginByApi($email, $password);
 
         $token = $response->json('access_token');
 
-        //mi collego per recuperare i dati utente
-        $response = $this->json('POST','/api/auth/logout',[
-            'Authorization' => 'Bearer ' . $token
-        ]);
+        $response = $this->_logoutUser($token);
 
         //Write the response in laravel.log
         Log::info('test logout', [$response->getContent()]);
@@ -258,14 +243,91 @@ class AuthTest extends TestCase
         $token = rand();
 
         //mi collego per recuperare i dati utente
-        $response = $this->json('GET','/api/auth/me',[
-            'Authorization' => 'Bearer ' . $token
-        ]);
+        $response = $this->_getUserData($token);
 
         //Write the response in laravel.log
         Log::info('test testErrorToken', [$response->getContent()]);;
 
         $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
+    }
+
+    /**
+     * metodo per la creazione utente
+     *
+     * @return \Illuminate\Testing\TestResponse
+     */
+    protected function _createUserByApi(): \Illuminate\Testing\TestResponse
+    {
+        return $this->json('POST', self::API_REGISTER, [
+            self::CREATE_NAME  =>  self::USER_NAME,
+            self::CREATE_EMAIL  =>  rand().time().self::USER_EMAIL,
+            self::CREATE_PASSWORD  =>  self::USER_PASSWORD,
+            self::CREATE_PASSWORD_CONFIRMATION => self::USER_PASSWORD,
+        ]);
+    }
+
+    /**
+     * elimino l'utente
+     *
+     * @param string $email
+     * @return void
+     */
+    protected function _deleteUser(string $email){
+        User::where(self::CREATE_EMAIL,$email)->delete();
+    }
+
+    /**
+     * simulo il login con le api
+     *
+     * @param string $email
+     * @param string $password
+     * @return \Illuminate\Testing\TestResponse
+     */
+    protected function _loginByApi(string $email, string $password): \Illuminate\Testing\TestResponse
+    {
+        return $this->json('POST',self::API_LOGIN,[
+            'email' => $email,
+            'password' => $password,
+        ]);
+    }
+
+    /**
+     * Ritorno i dati dell'utente tramite il token
+     *
+     * @param string $token
+     * @return \Illuminate\Testing\TestResponse
+     */
+    protected function _getUserData(string $token): \Illuminate\Testing\TestResponse
+    {
+        return $this->json('GET',self::API_ME,[
+            'Authorization' => 'Bearer ' . $token
+        ]);
+    }
+
+    /**
+     * rigenere il token jwt
+     *
+     * @param $token
+     * @return \Illuminate\Testing\TestResponse
+     */
+    protected function _refreshApiToken($token): \Illuminate\Testing\TestResponse
+    {
+        return $this->json('POST',self::API_REFRESH,[
+            'Authorization' => 'Bearer ' . $token
+        ]);
+    }
+
+    /**
+     * Eseguo il logout utente
+     *
+     * @param string $token
+     * @return \Illuminate\Testing\TestResponse
+     */
+    protected function _logoutUser(string $token): \Illuminate\Testing\TestResponse
+    {
+        return $this->json('POST',self::API_LOGOUT,[
+            'Authorization' => 'Bearer ' . $token
+        ]);
     }
 }
