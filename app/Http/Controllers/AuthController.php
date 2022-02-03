@@ -20,6 +20,21 @@ class AuthController extends Controller
         PASSWORD_MIN_MAX_LENGHT = 'min:6|max:25';
 
     /**
+     * risposte del metodo register
+     */
+    const
+        REGISTER_KEY = 'message',
+        REGISTER_MESSAGE = 'User successfully registered',
+        REGISTER_USER_KEY = 'user';
+
+    /**
+     * risposta del metodo logout
+     */
+    const
+        LOGOUT_KEY = 'message',
+        LOGOUT_MESSAGE = 'Successfully logged out';
+
+    /**
      * Create a new AuthController instance.
      *
      * @return void
@@ -28,6 +43,7 @@ class AuthController extends Controller
     {
         $this->middleware('auth:api', ['except' => ['login', 'register']]);
     }
+
 
     /**
      * Register a User.
@@ -54,8 +70,8 @@ class AuthController extends Controller
                 ));
 
         return response()->json([
-            'message' => 'User successfully registered',
-            'user' => $user
+            self::REGISTER_KEY => self::REGISTER_MESSAGE,
+            self::REGISTER_USER_KEY => $user
         ], Response::HTTP_CREATED);
     }
 
@@ -82,7 +98,7 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function me()
+    public function me(): \Illuminate\Http\JsonResponse
     {
         return response()->json($this->guard()->user());
     }
@@ -96,7 +112,7 @@ class AuthController extends Controller
     {
         $this->guard()->logout();
 
-        return response()->json(['message' => 'Successfully logged out']);
+        return response()->json([self::LOGOUT_KEY => self::LOGOUT_MESSAGE]);
     }
 
     /**

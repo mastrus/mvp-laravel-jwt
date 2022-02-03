@@ -23,7 +23,7 @@ class ApiTest extends TestCase
             ->assertStatus(Response::HTTP_OK)
             ->assertExactJson([
                 ApiTestController::INDEX_NAME => ApiTestController::OPEN_MESSAGE
-            ]);;
+            ]);
     }
 
     /**
