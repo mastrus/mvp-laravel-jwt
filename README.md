@@ -45,5 +45,3 @@
 
 ## Istruzioni per generare un nuovo progetto da zero
 - TODO
-
-# TODO fix logout con token errato non dia errori quando è chimato da postman
