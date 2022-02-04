@@ -13,8 +13,8 @@
 ## Comandi per attivare il progetto
 - cp .env.example .env
 - composer install
-- npm install
-- php artisan migrate (opzionale)
+- npm install (opzionale)
+- php artisan migrate 
 - php artisan jwt:secret
 
 ## Route create dentro al middleware 
