@@ -11,14 +11,15 @@
 - database sqlite - gia presente e configurato nel file .env.example
 
 ## Comandi per attivare il progetto
-- cp .env.example .env
-- composer install
-- npm install (opzionale)
-- php artisan migrate 
-- php artisan jwt:secret
+- docker-compose up php
+  - lancia direttamente il comando per attivare la php unit
+  - al suo interno commentati sono presenti altri due comandi:
+    - uno per lanciare un web server in modo da poter testare le api con postman o simili
+    - per aprire una shell direttamente dentro alla container
 
 ## Route create dentro al middleware 
 ### (escluse dal middleware dentro il controller le route register e login)
+- abilitando il comando dentro il file docker-compose.yaml l'indirizzo base è 127.0.0.1:8000
 - POST /api/auth/register - per registrare un utente
 - POST /api/auth/login - per eseguire il login ed ottenere il bearer token
 - POST /api/auth/logout - per eseguire il logout tramite il token
