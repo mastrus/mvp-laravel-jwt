@@ -13,8 +13,8 @@
 ## Comandi per attivare il progetto
 - cp .env.example .env
 - composer install
-- npm install
-- php artisan migrate (opzionale)
+- npm install (opzionale)
+- php artisan migrate 
 - php artisan jwt:secret
 
 ## Route create dentro al middleware 
@@ -45,5 +45,3 @@
 
 ## Istruzioni per generare un nuovo progetto da zero
 - TODO
-
-# TODO fix logout con token errato non dia errori quando è chimato da postman
