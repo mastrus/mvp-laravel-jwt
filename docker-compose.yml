@@ -19,9 +19,13 @@ services:
         - ./.env-docker-compose
     volumes:
         - .:/shared/httpd
-#    command: ./shell.sh # per aprire una shell direttamente dentro alla macchina
+    ports:
+      - "127.0.0.1:8000:8000"
+    network_mode: 'host'
+
+#    command: bash -l # per aprire una shell direttamente dentro alla macchina
     command: ./vendor/bin/phpunit # per lanciare direttamente la php unit
-#TODO    command: ./ # per testare le api con composer postman
+#    command:  php artisan serve  # per testare le api con composer postman
 
 
 
